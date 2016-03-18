@@ -75,32 +75,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // ATTENTION: This was auto-generated to implement the App Indexing API.
-        // See https://g.co/AppIndexing/AndroidStudio for more information.
-        client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
-    }
-
-    public void queueWrite(final String data) {
-        if (mAccessory == null) {
-            return;
-        }
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    mFout.write(new byte[]{(byte) data.length()});
-                    mFout.write(data.getBytes());
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }).start();
-    }
-
-    /**
-     * Called when the user touches the button
-     */
-    public void sendMessage(View view) {
         UsbManager mUsbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
         PendingIntent mPermissionIntent =
                 PendingIntent.getBroadcast(this, 0, new Intent(ACTION_USB_PERMISSION), 0);
@@ -117,13 +91,39 @@ public class MainActivity extends AppCompatActivity {
         FileInputStream mInputStream;
         FileOutputStream mOutputStream;
         mAccessory = accessoryList[0];
-
+        /* TO DO: buggy code check if empty list -> application will stop*/
         mFileDescriptor = mUsbManager.openAccessory(accessoryList[0]);
         if (mFileDescriptor != null) {
             FileDescriptor fd = mFileDescriptor.getFileDescriptor();
             mFout = new FileOutputStream(fd);
-            queueWrite("Hello world!! \n");
         }
+        // ATTENTION: This was auto-generated to implement the App Indexing API.
+        // See https://g.co/AppIndexing/AndroidStudio for more information.
+        client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
+    }
+
+    public void queueWrite(final String data) {
+        if (mAccessory == null) {
+            return;
+        }
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+             //       mFout.write(new byte[]{(byte) data.length()});
+                    mFout.write(data.getBytes());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
+    }
+
+    /**
+     * Called when the user touches the button
+     */
+    public void sendMessage(View view) {
+        queueWrite("Hello world!! \n");
     }
 
     @Override

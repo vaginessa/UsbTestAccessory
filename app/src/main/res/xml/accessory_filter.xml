@@ -2,7 +2,7 @@
 
 <resources>
     <usb-accessory
-        manufacturer="ENEA"
+        manufacturer="GitHub"
         model="RacquetScience"
         version="1.0" />
 </resources>
