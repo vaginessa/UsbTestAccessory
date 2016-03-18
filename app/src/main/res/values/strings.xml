@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">UsbTestAcc</string>
+    <string name="action_settings">Settings</string>
+</resources>
