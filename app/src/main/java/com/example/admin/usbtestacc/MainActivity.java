@@ -14,6 +14,7 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -28,6 +29,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
+
 public class MainActivity extends AppCompatActivity {
     private static final String ACTION_USB_PERMISSION =
             "com.android.example.USB_PERMISSION";
@@ -39,20 +41,16 @@ public class MainActivity extends AppCompatActivity {
                 synchronized (this) {
                     UsbAccessory accessory =
                             intent.getParcelableExtra(UsbManager.EXTRA_ACCESSORY);
-
-                    if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
-                        if (accessory != null) {
-                            //call method to set up accessory communication
-                        }
-                    } else {
-                        //     Log.d(TAG, "permission denied for accessory " + accessory);
-                    }
                 }
             }
         }
     };
+
+    TextView txtView = null;
     private FileOutputStream mFout = null;
-    private UsbAccessory mAccessory = null;
+    private FileInputStream mFin = null;
+    static boolean flag = false;
+    byte[] inBuff = null;
     /**
      * ATTENTION: This was auto-generated to implement the App Indexing API.
      * See https://g.co/AppIndexing/AndroidStudio for more information.
@@ -63,9 +61,10 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        txtView = (TextView) findViewById(R.id.textView);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-
+        txtView.setText("USB OPEN ACCESSORY APP");
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -74,56 +73,72 @@ public class MainActivity extends AppCompatActivity {
                         .setAction("Action", null).show();
             }
         });
-
         UsbManager mUsbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
         PendingIntent mPermissionIntent =
                 PendingIntent.getBroadcast(this, 0, new Intent(ACTION_USB_PERMISSION), 0);
-        TextView txtView = (TextView) findViewById(R.id.textView);
-
         final String ACTION_USB_PERMISSION = "com.android.example.USB_PERMISSION";
-
         IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
         registerReceiver(mUsbReceiver, filter);
         UsbAccessory[] accessoryList = mUsbManager.getAccessoryList();
         mUsbManager.requestPermission(accessoryList[0], mPermissionIntent);
-        txtView.setText(accessoryList.toString());
         ParcelFileDescriptor mFileDescriptor;
-        FileInputStream mInputStream;
-        FileOutputStream mOutputStream;
-        mAccessory = accessoryList[0];
-        /* TO DO: buggy code check if empty list -> application will stop*/
+         /* TO DO: buggy code check if empty list -> application will stop*/
         mFileDescriptor = mUsbManager.openAccessory(accessoryList[0]);
         if (mFileDescriptor != null) {
             FileDescriptor fd = mFileDescriptor.getFileDescriptor();
             mFout = new FileOutputStream(fd);
+            mFin = new FileInputStream(fd);
         }
         // ATTENTION: This was auto-generated to implement the App Indexing API.
         // See https://g.co/AppIndexing/AndroidStudio for more information.
         client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
     }
 
-    public void queueWrite(final String data) {
-        if (mAccessory == null) {
-            return;
-        }
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-             //       mFout.write(new byte[]{(byte) data.length()});
-                    mFout.write(data.getBytes());
-                } catch (IOException e) {
-                    e.printStackTrace();
+    public void queueIO() {
+
+        if (!flag) {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    inBuff = new byte[12];
+                    int count = 0;
+                    String data;
+
+                    while (true) {
+                        try {
+                            data = "USB bulk transfer index: " + count++;
+                            mFout.write(data.getBytes());
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        try {
+                            mFin.read(inBuff, 0,12);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        txtView.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                txtView.setText(new String(inBuff));
+                            }
+                        });
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException e) {
+                            Log.e("ThreadIO", "got interrupted!");
+                        }
+                    }
                 }
-            }
-        }).start();
+            }).start();
+            flag = true;
+        }
     }
 
     /**
      * Called when the user touches the button
      */
     public void sendMessage(View view) {
-        queueWrite("Hello world!! \n");
+        queueIO();
     }
 
     @Override
